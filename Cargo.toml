@@ -1,0 +1,10 @@
+[package]
+name = "zedmq"
+version = "0.1.0"
+authors = ["mental <m3nta1@yahoo.com>"]
+edition = "2018"
+
+[dependencies]
+# logos = "0.11.4"
+tokio = { version = "0.2.22", features = ["tcp"] }
+nom = "5.1.2"

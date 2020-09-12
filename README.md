@@ -1,12 +1,27 @@
 # zedmq
-## A tiny, safe, pure Rust, ZMQ(ZMTP) library implementation
+
+## A Tiny, Safe, and pure Rust ØMQ/ZMTP library implementation
+
+## Index
+
+* [Brief](#Brief)
+* [Examples](#examples)
+
+## Brief
+
+_Zedmq_ is a native implementation of ØMQ in Rust focusing on speed, safety, and
+a minimalistic and human-friendly API.
+
+## Examples
+
+## An echoing ROUTER-based server
 
 ```rust
 use zedmq::prelude::*;
 
-async fn echo_connection(connection: RouterConnection) {
-    while let Some(message) = connection.next().await {
-        connection.send(message).await;
+async fn echo_connection(peer: ClientPeer) {
+    while let Some(message) = peer.next().await {
+        peer.send(message).await;
     }
 }
 

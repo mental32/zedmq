@@ -1,5 +1,5 @@
 // mod endpoint;
-mod socket;
+pub mod codec;
 
 pub mod prelude {
     // TODO: Fill...

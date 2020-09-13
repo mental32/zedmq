@@ -6,6 +6,7 @@
 
 * [Brief](#Brief)
 * [Examples](#examples)
+* [Currently supported](#supported-socket-typesfeatures)
 
 ## Brief
 
@@ -37,3 +38,70 @@ async fn main() {
     }
 }
 ```
+
+
+### Supported socket-types/features
+
+* [x] PULL
+  * [ ] connect
+    * [x] tcp
+    * [ ] inproc
+    * [ ] ipc
+  * [ ] bind
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+* [ ] PUSH
+  * [ ] connect
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+  * [ ] bind
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+* [ ] DEALER
+  * [ ] connect
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+  * [ ] bind
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+* [ ] ROUTER
+  * [ ] connect
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+  * [ ] bind
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+* [ ] PAIR
+  * [ ] connect
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+  * [ ] bind
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+* [ ] PUB
+  * [ ] connect
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+  * [ ] bind
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+* [ ] SUB
+  * [ ] connect
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc
+  * [ ] bind
+    * [ ] tcp
+    * [ ] inproc
+    * [ ] ipc

@@ -68,9 +68,9 @@ impl<'a> TryFrom<&'a [u8]> for Frame<'a> {
         let body = RawFrame::try_from((kind, bytes))?;
 
         let (size, is_short) = match kind {
-            0x1 | 0x0 | 0x4 => (bytes[1] as usize, true),
+            0x0 | 0x1 | 0x4 => (bytes[1] as usize, true),
 
-            0x3 | 0x2 | 0x6 => (
+            0x2 | 0x3 | 0x6 => (
                 u64::from_be_bytes(bytes[1..].try_into().unwrap()) as usize,
                 false,
             ),
@@ -110,15 +110,6 @@ impl<'a> Frame<'a> {
         match self {
             Self::Short {
                 size,
-                body: RawFrame::Command { name, body },
-            } => {
-                raw.extend_from_slice(&[0x4, *size as u8, name.len() as u8]);
-                raw.extend_from_slice(name.as_bytes());
-                raw.extend_from_slice(body);
-            }
-
-            Self::Short {
-                size,
                 body: RawFrame::MessageTail(bytes),
             } => {
                 raw.extend_from_slice(&[0x0, *size as u8]);
@@ -133,7 +124,39 @@ impl<'a> Frame<'a> {
                 raw.extend_from_slice(bytes);
             }
 
-            Self::Long { .. } => unreachable!(),
+            Self::Long {
+                size,
+                body: RawFrame::MessageTail(bytes),
+            } => {
+                raw.extend_from_slice(&[0x2, *size as u8]);
+                raw.extend_from_slice(bytes);
+            }
+
+            Self::Long {
+                size,
+                body: RawFrame::MessagePart(bytes),
+            } => {
+                raw.extend(vec![0x3, *size as u8]);
+                raw.extend_from_slice(bytes);
+            }
+
+            Self::Short {
+                size,
+                body: RawFrame::Command { name, body },
+            } => {
+                raw.extend_from_slice(&[0x4, *size as u8, name.len() as u8]);
+                raw.extend_from_slice(name.as_bytes());
+                raw.extend_from_slice(body);
+            }
+
+            Self::Long {
+                size,
+                body: RawFrame::Command { name, body },
+            } => {
+                raw.extend_from_slice(&[0x6, *size as u8, name.len() as u8]);
+                raw.extend_from_slice(name.as_bytes());
+                raw.extend_from_slice(body);
+            }
         };
 
         raw

@@ -1,11 +1,7 @@
 [package]
 name = "zedmq"
-version = "0.0.0-alpha-1"
+version = "0.1.0"
 authors = ["mental <mentalfoss@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-tokio = { version = "0.2.22", features = ["tcp", "macros", "rt-threaded", "dns", "io-util", "time"] }
-
-# Used for parsing endpoint strings.
-regex = "1.3.9"

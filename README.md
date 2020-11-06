@@ -1,107 +1,31 @@
 # zedmq
 
-## A Tiny, Safe, and pure Rust ØMQ/ZMTP library implementation
+## A Lightweight, Safe, pure-Rust ØMQ/ZMTP library implementation
 
 ## Index
 
-* [Brief](#Brief)
-* [Examples](#examples)
-* [Currently supported](#supported-socket-typesfeatures)
+* [Brief](#brief)
 
-## Brief
+### Brief
 
-_Zedmq_ is a native implementation of ØMQ in Rust focusing on speed, safety, and
-a minimalistic and human-friendly API.
+_Zedmq_ is a native implementation of ØMQ in Rust focusing on:
+
+* being as lightweight as possible.
+* being completely safe.
+* providing a simple, blocking, obvious API.
 
 ## Examples
-
-## An echoing ROUTER-based server
 
 ```rust
 use zedmq::prelude::*;
 
-async fn echo_connection(peer: ClientPeer) {
-    while let Some(message) = peer.next().await {
-        peer.send(message).await;
-    }
-}
+fn main() -> std::io::Result<()> {
+    let mut socket = <Pull as Socket>::bind("tcp://127.0.0.1:5678")?;
 
-#[tokio::main]
-async fn main() {
-    let mut router_socket = Socket::router()
-        .bind("tcp://127.0.0.1:5678")
-        .build()
-        .await.unwrap();
-
-    while Some(connection) = router_socket.incoming().next().await {
-        tokio::spawn(echo_connection(connection))
+    while Some(message) = socket.recv() {
+        dbg!(message);
     }
+
+    Ok(())
 }
 ```
-
-
-### Supported socket-types/features
-
-* [x] PULL
-  * [ ] connect
-    * [x] tcp
-    * [ ] inproc
-    * [ ] ipc
-  * [ ] bind
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-* [ ] PUSH
-  * [ ] connect
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-  * [ ] bind
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-* [ ] DEALER
-  * [ ] connect
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-  * [ ] bind
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-* [ ] ROUTER
-  * [ ] connect
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-  * [ ] bind
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-* [ ] PAIR
-  * [ ] connect
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-  * [ ] bind
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-* [ ] PUB
-  * [ ] connect
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-  * [ ] bind
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-* [ ] SUB
-  * [ ] connect
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc
-  * [ ] bind
-    * [ ] tcp
-    * [ ] inproc
-    * [ ] ipc

@@ -7,7 +7,7 @@ pub mod pull_t;
 // -- trait Socket
 
 /// A trait used to generalize ZMQ behaviour.
-pub trait Socket
+pub(crate) trait Socket
 where
     Self: Sized,
 {

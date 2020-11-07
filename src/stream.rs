@@ -68,7 +68,7 @@ impl Stream {
 
             // dbg!(&buf[..n]);
 
-            let handshake = Frame::from(&buf[..n]);
+            // let handshake = Frame::from(&buf[..n]);
 
             // dbg!(&handshake.try_into_command());
             // TODO: validate handshake, this contains (for NULL security mechanisms) the following properties:

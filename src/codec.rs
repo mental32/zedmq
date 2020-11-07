@@ -174,8 +174,8 @@ impl<'a> From<&'a [u8]> for Frame<'a> {
 // -- greeting()
 
 /// # Examples
-/// ```
-/// use zedmq::codec::greeting;
+/// ```ignore
+/// use crate::codec::greeting;
 ///
 /// let g = greeting();
 /// let (left, right) = (&g[..=11], &g[12..]);

@@ -10,6 +10,18 @@ pub struct Pull {
     inner: crate::stream::Stream,
 }
 
+impl Pull {
+    /// Block until a handshake has succeeded with `address`.
+    pub fn connect(address: &str) -> io::Result<Self> {
+        <Self as Socket>::connect(address)
+    }
+
+    /// Receive a multi-part message.
+    pub fn recv(&mut self) -> io::Result<Vec<Vec<u8>>> {
+        <Self as Socket>::recv(self)
+    }    
+}
+
 impl Socket for Pull {
     fn recv(&mut self) -> io::Result<Vec<Vec<u8>>> {
         let mut frames = vec![];
@@ -57,17 +69,19 @@ impl Socket for Pull {
         let phantom_frame = Frame::new(&head as &[_]);
         let size = phantom_frame.size().unwrap();
 
-        if size <= head.len() {
-            Ok(FrameBuf::new(head[..head_n].to_vec()))
-        } else {
+        let frame_buf = if size > head.len() {
             let mut tail = Vec::with_capacity(size - head.len());
             let tail_n = self.inner.read(tail.as_mut_slice())?;
 
             let mut data = head[..head_n].to_vec();
             data.extend_from_slice(&tail.as_slice()[..tail_n]);
 
-            Ok(FrameBuf::new(data))
-        }
+            FrameBuf::new(data)
+        } else {
+            FrameBuf::new(head[..head_n].to_vec())
+        };
+    
+        Ok(frame_buf)
     }
 
     fn bind(_: &str) -> io::Result<Self> {

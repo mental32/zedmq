@@ -19,13 +19,13 @@
 //!
 //! ## Examples
 //!
-//! ```rust
+//! ```rust,no_run
 //! use zedmq::prelude::*;
 //!
 //! fn main() -> std::io::Result<()> {
-//!     let mut socket = <Pull as Socket>::bind("127.0.0.1:5678")?;
+//!     let mut socket = Pull::connect("127.0.0.1:5678")?;
 //!
-//!     while Ok(message) = socket.recv() {
+//!     while let Ok(message) = socket.recv() {
 //!         dbg!(message);
 //!     }
 //!
@@ -42,5 +42,5 @@ mod stream;
 
 /// The prelude.
 pub mod prelude {
-    pub use crate::socket_type::{pull_t::Pull, Socket};
+    pub use crate::socket_type::pull_t::Pull;
 }

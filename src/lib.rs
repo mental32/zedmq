@@ -41,7 +41,7 @@ use std::{
 
 mod codec;
 
-use codec::{Frame, FrameBuf};
+use codec::{Frame, FrameBuf, FrameKind};
 
 /// The prelude.
 pub mod prelude {
@@ -79,6 +79,9 @@ where
 
     /// Receive a frame into a pre-allocated slice-buffer.
     fn recv_frame_into<'a>(&mut self, buf: &'a mut [u8]) -> io::Result<Frame<'a>>;
+
+    /// Receive a multi-part message.
+    fn recv(&mut self) -> io::Result<Vec<Vec<u8>>>;
 }
 
 /// A zmq PULL socket.
@@ -117,6 +120,35 @@ fn greeting() -> [u8; 64] {
 }
 
 impl Socket for Pull {
+    fn recv(&mut self) -> io::Result<Vec<Vec<u8>>> {
+        let mut frames = vec![];
+
+        loop {
+            let frame_buf = self.recv_frame()?;
+            assert!(frame_buf.as_frame().kind().is_some());
+
+            if let Some(message) = frame_buf.as_frame().try_into_message() {
+                frames.push(message.body().to_vec());
+
+                if message.is_last() {
+                    break;
+                }
+            } else {
+                assert!(matches!(
+                    frame_buf.as_frame().kind(),
+                    Some(FrameKind::Command)
+                ));
+
+                panic!(
+                    "Unexpected command frame! {:#?}",
+                    frame_buf.as_frame().try_into_command()
+                );
+            }
+        }
+
+        Ok(frames)
+    }
+
     fn recv_frame_into<'a>(&mut self, buf: &'a mut [u8]) -> io::Result<Frame<'a>> {
         let n = read_stream(&mut self.stream, buf)?;
         let byte_slice = &buf[..n];

@@ -14,6 +14,18 @@ impl AsRef<[u8]> for FrameBuf {
     }
 }
 
+impl From<Vec<u8>> for FrameBuf {
+    fn from(bytes: Vec<u8>) -> Self {
+        Self { bytes }
+    }
+}
+
+impl From<FrameBuf> for Vec<u8> {
+    fn from(FrameBuf { bytes }: FrameBuf) -> Self {
+        bytes
+    }
+}
+
 impl FrameBuf {
     pub fn new(bytes: Vec<u8>) -> Self {
         Self { bytes }
@@ -91,6 +103,20 @@ impl<'a> Frame<'a> {
         }
     }
 
+    pub fn try_into_message(self) -> Option<Message<'a>> {
+        match self.kind()? {
+            FrameKind::MessagePart => Some(Message {
+                frame: self,
+                is_last: false,
+            }),
+            FrameKind::MessageTail => Some(Message {
+                frame: self,
+                is_last: true,
+            }),
+            _ => None,
+        }
+    }
+
     /// Get the size of the frame.
     pub fn size(&self) -> Option<usize> {
         match self.bytes.get(0)? {
@@ -142,6 +168,30 @@ pub enum FrameKind {
 impl<'a> From<&'a [u8]> for Frame<'a> {
     fn from(bytes: &'a [u8]) -> Self {
         Self { bytes }
+    }
+}
+
+// -- Message
+
+pub struct Message<'a> {
+    frame: Frame<'a>,
+    is_last: bool,
+}
+
+impl<'a> Message<'a> {
+    #[inline]
+    pub fn is_last(&self) -> bool {
+        self.is_last
+    }
+
+    #[inline]
+    pub fn body(&self) -> &'a [u8] {
+        let start = if self.frame.bytes[0] == 0x0 || self.frame.bytes[0] == 0x1 {
+            2
+        } else {
+            9
+        };
+        &self.frame.bytes[start..]
     }
 }
 

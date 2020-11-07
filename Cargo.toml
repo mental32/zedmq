@@ -3,5 +3,11 @@ name = "zedmq"
 version = "0.1.0"
 authors = ["mental <mentalfoss@gmail.com>"]
 edition = "2018"
+license = "MIT"
+description = "A lightweight, safe, pure-Rust ØMQ/ZMTP library implementation."
+repository = "https://github.com/mental32/zedmq"
+readme = "README.md"
+categories = ["network-programming"]
+keywords = ["zmq", "protocol"]
 
 [dependencies]

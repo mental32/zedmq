@@ -4,7 +4,7 @@ use std::{
     net::TcpStream,
 };
 
-use crate::codec::{Frame, FrameBuf};
+use crate::codec::{FrameBuf};
 
 // -- Stream<'a>
 
@@ -64,7 +64,7 @@ impl Stream {
 
             // Inspect remote handshake.
             let mut buf = [0u8; 64];
-            let n = stream.read(&mut buf[..])?;
+            let _n = stream.read(&mut buf[..])?;
 
             // dbg!(&buf[..n]);
 

@@ -1,3 +1,6 @@
+//! > Note that this library is in the very early stages of development!
+//! > Anything and everything may change!
+//! 
 //! # zedmq
 //!
 //! ## A Lightweight, Safe, pure-Rust ØMQ/ZMTP library implementation

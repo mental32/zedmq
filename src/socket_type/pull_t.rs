@@ -19,7 +19,7 @@ impl Pull {
     /// Receive a multi-part message.
     pub fn recv(&mut self) -> io::Result<Vec<Vec<u8>>> {
         <Self as Socket>::recv(self)
-    }    
+    }
 }
 
 impl Socket for Pull {
@@ -80,7 +80,7 @@ impl Socket for Pull {
         } else {
             FrameBuf::new(head[..head_n].to_vec())
         };
-    
+
         Ok(frame_buf)
     }
 

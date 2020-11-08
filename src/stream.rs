@@ -4,7 +4,7 @@ use std::{
     net::TcpStream,
 };
 
-use crate::codec::{FrameBuf};
+use crate::codec::FrameBuf;
 
 // -- Stream<'a>
 
@@ -38,7 +38,8 @@ impl Stream {
     pub(super) fn connect(address: &str) -> io::Result<TcpStream> {
         let mut stream = TcpStream::connect(address)?;
 
-        let greeting = crate::codec::greeting();
+        // let greeting = crate::codec::Greeting::build().as_server(true).as_bytes();
+        let mut greeting = crate::codec::greeting();
         let (partial, remaining) = (&greeting[..=11], &greeting[12..]);
 
         // Send partial greeting

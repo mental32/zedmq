@@ -54,7 +54,6 @@
 
 /// The currently supported ZMQ version.
 pub const ZMQ_VERSION: (u8, u8, u8) = (4, 3, 2);
-mod stream;
 
 pub(crate) mod codec;
 pub(crate) mod socket_type;

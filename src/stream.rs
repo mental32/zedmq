@@ -1,33 +1,67 @@
 use std::{
-    io::Write,
-    io::{self, Read},
+    io::{self, Read, Write},
+    net::TcpListener,
     net::TcpStream,
 };
 
-use crate::codec::FrameBuf;
+use crate::codec::{FrameBuf, ZMTP};
 
-// -- Stream<'a>
+// -- Transport
 
-#[derive(Debug, Default)]
-pub(crate) struct Stream {
-    address: String,
-    inner: Option<TcpStream>,
+#[derive(Debug)]
+pub(crate) enum Position<L, R> {
+    Connect(L),
+    Bind(R),
 }
 
-impl From<(String, TcpStream)> for Stream {
-    fn from((address, inner): (String, TcpStream)) -> Self {
-        Self {
-            address,
-            inner: Some(inner),
+#[derive(Debug)]
+pub(crate) enum Transport {
+    Tcp(Position<TcpStream, TcpListener>),
+}
+
+impl Write for Transport {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match self {
+            Self::Tcp(Position::Connect(stream)) => stream.write(buf),
+            Self::Tcp(Position::Bind(_)) => unimplemented!(),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match self {
+            Self::Tcp(Position::Connect(stream)) => stream.flush(),
+            Self::Tcp(Position::Bind(_)) => Ok(()),
         }
     }
 }
 
+impl Read for Transport {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self {
+            Self::Tcp(Position::Connect(stream)) => stream.read(buf),
+            Self::Tcp(Position::Bind(_)) => unimplemented!(),
+        }
+    }
+}
+
+// -- Stream<'a>
+
+/// The stream struct represents the underlying connection primitive.
+#[derive(Debug, Default)]
+pub(crate) struct Stream {
+    socket_type: &'static str,
+    address: String,
+    transport: Option<Transport>,
+}
+
+
 impl Stream {
-    pub(super) fn connected(address: &str) -> Self {
+    /// Given an `address` produce a `Stream` that is connected even if connecting may block.
+    pub(super) fn connected(socket_type: &'static str, address: &str) -> Self {
         let mut stream = Self {
+            socket_type,
             address: address.to_string(),
-            inner: None,
+            transport: None,
         };
 
         stream.ensure_connected();
@@ -35,85 +69,43 @@ impl Stream {
         stream
     }
 
-    pub(super) fn connect(address: &str) -> io::Result<TcpStream> {
-        let mut stream = TcpStream::connect(address)?;
+    pub(super) fn connect(&self) -> io::Result<Transport> {
+        let address = self.address.clone();
+        let produce = move || Ok(Transport::Tcp(Position::Connect(TcpStream::connect(address)?)));
 
-        // let greeting = crate::codec::Greeting::build().as_server(true).as_bytes();
-        let mut greeting = crate::codec::greeting();
-        let (partial, remaining) = (&greeting[..=11], &greeting[12..]);
+        let transport = ZMTP::connect(produce)?
+            .greet(crate::ZMQ_VERSION, false)?
+            .ready(self.socket_type)?;
 
-        // Send partial greeting
-        stream.write(partial)?;
-
-        // Inspect remote partial greeting.
-        {
-            let mut buf = [0u8; 12];
-            let n = stream.read(&mut buf[..])?;
-            assert_eq!(n, 12, "{:?}", buf);
-            // TODO: parse partial greeting for correct peer zmq version.
-        }
-
-        // Send remaining greeting
-        stream.write(remaining)?;
-
-        {
-            // Read the remaining remote greeting.
-            let mut buf = [0u8; 52];
-            let n = stream.read(&mut buf[..])?;
-            assert_eq!(n, 52);
-            // TODO: parse, this contains the security mechanism (by default NULL) and some extra metadata.
-
-            // Inspect remote handshake.
-            let mut buf = [0u8; 64];
-            let _n = stream.read(&mut buf[..])?;
-
-            // dbg!(&buf[..n]);
-
-            // let handshake = Frame::from(&buf[..n]);
-
-            // dbg!(&handshake.try_into_command());
-            // TODO: validate handshake, this contains (for NULL security mechanisms) the following properties:
-            //  - Socket-Type {type} i.e. PUSH, PULL, DEALER, ROUTER, PAIR
-            //  - Identity; only if WE are ROUTER and they are using a ROUTER compatible socket type with a custom routing id.
-        }
-
-        // Send handshake
-
-        let handshake = {
-            let properties = vec![("Socket-Type", "PULL")];
-
-            FrameBuf::short_command("READY", Some(properties))
-        };
-
-        stream.write(handshake.as_ref())?;
-
-        Ok(stream)
+        Ok(transport)
     }
 
-    fn ensure_connected(&mut self) -> &mut TcpStream {
-        while self.inner.is_none() {
-            match Self::connect(self.address.as_str()) {
-                Ok(stream) => {
-                    let _ = self.inner.replace(stream);
-                    break;
-                }
-
-                _ => std::thread::sleep(std::time::Duration::from_millis(100)),
+    fn ensure_connected(&mut self) -> &mut Transport {
+        while self.transport.is_none() {
+            if let Ok(fresh) = self.connect() {
+                let _ = self.transport.replace(fresh);
+                break;
+            } else {
+                std::thread::sleep(std::time::Duration::from_millis(100));
             }
         }
 
-        self.inner.as_mut().unwrap()
+        self.transport.as_mut().unwrap()
     }
+}
 
-    pub(super) fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        loop {
-            let n_bytes = self.ensure_connected().read(buf)?;
+impl Read for Stream {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let mut n_bytes;
 
-            if n_bytes > 0 {
-                return Ok(n_bytes);
-            }
-
-            self.inner.take();
+        while {
+            n_bytes = self.ensure_connected().read(buf)?;
+            n_bytes
+        } <= 0
+        {
+            self.transport.take();
         }
+
+        Ok(n_bytes)
     }
 }

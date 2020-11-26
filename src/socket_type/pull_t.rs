@@ -33,7 +33,7 @@ impl Socket for Pull {
         })
     }
 
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.inner.read(buf)
+    fn transport(&mut self) -> &mut crate::stream::Transport {
+        self.inner.transport.as_mut().unwrap()
     }
 }

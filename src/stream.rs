@@ -51,7 +51,7 @@ impl Read for Transport {
 pub(crate) struct Stream {
     socket_type: &'static str,
     address: String,
-    transport: Option<Transport>,
+    pub(crate) transport: Option<Transport>,
 }
 
 

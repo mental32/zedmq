@@ -1,6 +1,6 @@
-use std::io;
+use std::{cmp::max, io::{self, Read, Write}};
 
-use crate::codec::{Frame, FrameBuf, FrameKind};
+use crate::{stream::Transport, codec::{Frame, FrameBuf, FrameKind}};
 
 pub mod pull_t;
 
@@ -19,6 +19,9 @@ where
 
     /// Connect to some address.
     fn connect(address: &str) -> io::Result<Self>;
+
+    /// Get a mutable reference to the current transport primitive.
+    fn transport(&mut self) -> &mut Transport;
 
     /// Read bytes into some buffer.
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize>;

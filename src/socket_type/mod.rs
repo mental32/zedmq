@@ -3,6 +3,7 @@ use std::{cmp::max, io::{self, Read, Write}};
 use crate::{stream::Transport, codec::{Frame, FrameBuf, FrameKind}};
 
 pub mod pull_t;
+pub mod push_t;
 
 // -- trait Socket
 
@@ -24,10 +25,59 @@ where
     fn transport(&mut self) -> &mut Transport;
 
     /// Read bytes into some buffer.
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize>;
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.transport().read(buf)
+    }
+
+    /// Read bytes into some buffer.
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.transport().write(buf)
+    }
 
     #[inline]
-    fn send(&mut self, data: &[u8]) -> io::Result<()> {
+    fn send<I, S>(&mut self, mut data: I) -> io::Result<()>
+    where
+        I: DoubleEndedIterator<Item = S>,
+        S: std::fmt::Debug + AsRef<[u8]>,
+    {
+        let tail = data.next_back().expect("Can not send empty frame.");
+        let body: Vec<_> = data.collect();
+
+        let mut frame = Vec::with_capacity(max(
+            body.iter().map(|i| i.as_ref().len()).max().unwrap_or(0),
+            tail.as_ref().len(),
+        ));
+
+        for part in body {
+            let size = part.as_ref().len();
+
+            if size <= std::u8::MAX as usize {
+                // SHORT MESSAGE MORE
+                frame.push(0x01);
+                // SHORT SIZE
+                frame.push(size as u8);
+            } else {
+                // LONG MESSAGE MORE
+                frame.push(0x03);
+                // SHORT SIZE
+                frame.extend_from_slice(&(size as u32).to_be_bytes() as &[_]);
+            };
+
+            frame.extend_from_slice(part.as_ref());
+
+            self.write(&frame)?;
+
+            frame.clear();
+        }
+
+        // SHORT MESSAGE LAST
+        frame.push(0x00);
+        // SHORT SIZE
+        frame.push(tail.as_ref().len() as u8);
+        frame.extend_from_slice(&tail.as_ref());
+
+        self.write(&frame)?;
+
         Ok(())
     }
 

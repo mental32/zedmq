@@ -63,5 +63,5 @@ pub(crate) mod stream;
 pub mod prelude {
     pub(crate) use super::*;
 
-    pub use socket_type::pull_t::Pull;
+    pub use socket_type::{pull_t::Pull, push_t::Push};
 }

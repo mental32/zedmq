@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt};
+use std::fmt;
 
 use super::Frame;
 
@@ -114,7 +114,7 @@ impl<'a> fmt::Debug for Command<'a> {
         f.write_fmt(format_args!(
             "Command {{ name: {:#?}, properties: {:#?} }}",
             self.name(),
-            self.null_ready_properties().map(|it| it.collect::<Vec<_>>())
+            self.null_ready_properties().map(|it| it.collect::<Vec<_>>()).unwrap_or_default(),
         ))
     }
 }

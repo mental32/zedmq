@@ -1,8 +1,10 @@
 import zmq
+import os
 
 ctx = zmq.Context()
+
 s = ctx.socket(zmq.PUSH)
-s.bind(st := "tcp://127.0.0.1:7890")
+s.bind(st := f"tcp://{os.environ['ADDRESS']}")
 
 import time
 

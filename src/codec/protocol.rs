@@ -79,7 +79,7 @@ impl ZMTP {
             let mut buf = [0u8; 64];
             let n = transport.read(&mut buf)?;
 
-            dbg!((super::Frame { bytes: &buf[..n] }.try_into_command()).unwrap());
+            // dbg!((super::Frame { bytes: &buf[..n] }.try_into_command()).unwrap());
 
             // TODO: validate handshake, this contains (for NULL security mechanisms) the following properties:
             //  - Socket-Type {type} i.e. PUSH, PULL, DEALER, ROUTER, PAIR

@@ -8,6 +8,7 @@
 ## Index
 
 * [Brief](#brief)
+* [Examples](#examples)
 
 ### Brief
 
@@ -17,7 +18,22 @@ _Zedmq_ is a native implementation of ØMQ in Rust focusing on:
 * being completely safe.
 * providing a simple, blocking, obvious API.
 
-## Examples
+This library is lazy and blocking, no work is done unless a call to a
+`recv` or `send` is made. There is no "background" thread or task accepting
+new connections or performing reconnections on the users behalf
+consequently there is no shared state or synchronization being performed.
+
+#### `Frame<'_>` and `FrameBuf`
+
+This library also exposes the underlying ZMQ concept of a frame.
+Additionally a distinction is made with the `Frame` and `FrameBuf` types
+for optimization purposes.
+
+Conceptually a `Frame<'_>` is equivelent to `&'_ [u8]` or `&'_ str` and
+the `FrameBuf` equivelent is `Vec<u8>` or `String`. This distinction is
+made in an attempt to make "zero copy" or "zero heap" practice easier.
+
+### Examples
 
 ```rust
 use zedmq::prelude::*;

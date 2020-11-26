@@ -2,7 +2,69 @@ use std::{collections::HashMap, fmt};
 
 use super::Frame;
 
-// -- Command
+// -- PropertyIterator<'a>
+
+struct PropertyIterator<'a, I> where I: Iterator<Item = (usize, &'a u8)> {
+    inner: &'a Command<'a>,
+    cursor: I
+}
+
+impl<'a, I> Iterator for PropertyIterator<'a, I> where I: Iterator<Item = (usize, &'a u8)> {
+    type Item = (&'a str, &'a str);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (name_idx, name_size) = self.cursor.next()?;
+
+        // Jump over the name chunk so that the field is next.
+        for _ in 0..(*name_size) {
+            let _ = self.cursor.next().expect("Expected to jump over a name chunk byte...");
+        }
+
+        // Extract out the name str.
+        let name_start = name_idx + 1;
+        let name = {
+            let range = name_start..(name_start + *name_size as usize);
+            let slice = &self.inner.frame.bytes[range];
+
+            std::str::from_utf8(slice).unwrap_or("INVALID.UTF-8")
+        };
+
+        // Read four octets into an array and cast it to a u32
+        // It's written like this so that the iterator is advanced simultaneously.
+        let (field_idx, field_size) = {
+            let mut field_size = [0u8; 4];
+            let mut field_idx = 0;
+
+            for idx in 0..4 {
+                let (pos, byte) = self.cursor
+                    .next()
+                    .map(|(idx, n)| (idx, *n))
+                    .expect("Unexpected EOF");
+                field_idx = pos;
+                field_size[idx] = byte;
+            }
+
+            (field_idx + 1, u32::from_be_bytes(field_size) as usize)
+        };
+
+        // And now slice out the field.
+        let field = {
+            let range = field_idx..(field_idx + field_size as usize);
+            let slice = &self.inner.frame.bytes[range];
+
+            std::str::from_utf8(slice).unwrap_or("INVALID.UTF-8")
+        };
+
+        // Finally jump over the current field chunk.
+        for _ in 0..field_size {
+            let _ = self.cursor.next();
+        }
+
+        Some((name, field))
+    }
+}
+
+// -- Command<'_>
 
 pub struct Command<'a> {
     pub(crate) frame: Frame<'a>,
@@ -22,54 +84,28 @@ impl<'a> Command<'a> {
         st
     }
 
-    pub fn properties(&self) -> HashMap<&str, &str> {
-        let idx = if self.frame.bytes[0] == 0x4 { 3 } else { 10 } + self.name().len();
+    /// Get an iterator over the NULL properties of this command.
+    ///
+    /// This frame is only sent once after a handshake only if the security
+    /// mechanism is NULL.
+    #[inline]
+    pub fn null_ready_properties(&self) -> Option<impl Iterator<Item = (&str, &str)>> {
+        if self.name() != "READY" {
+            return None;
+        } 
 
-        let mut cursor = self.frame.bytes.iter().enumerate().skip(idx);
-        let mut properties = HashMap::new();
+        let cursor = self
+            .frame
+            .bytes
+            .iter()
+            .enumerate()
+            // Skip ahead to the command-metadata/properties index
+            // which is calculated based of frame size.
+            .skip(if self.frame.bytes[0] == 0x4 { 3 } else { 10 } + self.name().len());
 
-        eprintln!("{:?}", &self.frame.bytes);
+        let it = PropertyIterator { inner: self, cursor };
 
-        while let Some((name_idx, name_size)) = cursor.next() {
-            let name_as_bytes =
-                &self.frame.bytes[(name_idx + 1)..(name_idx + 1 + *name_size as usize)];
-            let name = std::str::from_utf8(name_as_bytes).unwrap_or("INVALID UTF-8");
-
-            dbg!(name);
-
-            for _ in 0..(*name_size) {
-                let _ = cursor.next();
-            }
-
-            let (field_idx, field_size) = {
-                let mut field_size = [0u8; 4];
-                let mut field_idx = 0;
-
-                for idx in 0..4 {
-                    let (pos, byte) = cursor
-                        .next()
-                        .map(|(idx, n)| (idx, *n))
-                        .expect("Unexpected EOF");
-                    field_idx = pos;
-                    field_size[idx] = byte;
-                }
-
-                (field_idx + 1, u32::from_be_bytes(field_size) as usize)
-            };
-
-            let field_as_bytes = &self.frame.bytes[field_idx..(field_idx + field_size)];
-            let field = std::str::from_utf8(field_as_bytes).unwrap_or("INVALID UTF-8");
-
-            properties.insert(name, field);
-
-            for _ in 0..(field_size) {
-                let _ = cursor.next();
-            }
-        }
-
-        assert!(cursor.next().is_none());
-
-        properties
+        Some(it)
     }
 }
 
@@ -78,7 +114,7 @@ impl<'a> fmt::Debug for Command<'a> {
         f.write_fmt(format_args!(
             "Command {{ name: {:#?}, properties: {:#?} }}",
             self.name(),
-            self.properties()
+            self.null_ready_properties().map(|it| it.collect::<Vec<_>>())
         ))
     }
 }

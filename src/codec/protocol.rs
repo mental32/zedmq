@@ -40,8 +40,6 @@ impl ZMTP {
         // Send partial greeting
         self.transport.write(&partial)?;
 
-        // unreachable!();
-
         // Inspect remote partial greeting.
         {
             let mut buf = [0u8; 12];
@@ -64,15 +62,11 @@ impl ZMTP {
         // Send remaining greeting
         self.transport.write(&remaining)?;
 
-        // unreachable!();
-
         Ok(self)
     }
 
     pub fn ready<'b>(self, socket_type: &'b str) -> io::Result<Transport> {
         let Self { mut transport, .. } = self;
-
-        // unreachable!();
 
         {
             // Read the remaining remote greeting.
@@ -85,11 +79,7 @@ impl ZMTP {
             let mut buf = [0u8; 64];
             let n = transport.read(&mut buf)?;
 
-            // for octet in &buf {
-
-            // }
-
-            dbg!(super::Frame { bytes: &buf }.try_into_command());
+            dbg!((super::Frame { bytes: &buf[..n] }.try_into_command()).unwrap());
 
             // TODO: validate handshake, this contains (for NULL security mechanisms) the following properties:
             //  - Socket-Type {type} i.e. PUSH, PULL, DEALER, ROUTER, PAIR
@@ -104,11 +94,7 @@ impl ZMTP {
             FrameBuf::short_command("READY", Some(properties))
         };
 
-        dbg!(handshake.as_frame().try_into_command());
-
         transport.write(handshake.as_ref())?;
-
-        // unreachable!();
 
         Ok(transport)
     }

@@ -4,12 +4,18 @@ use super::Frame;
 
 // -- PropertyIterator<'a>
 
-struct PropertyIterator<'a, I> where I: Iterator<Item = (usize, &'a u8)> {
+struct PropertyIterator<'a, I>
+where
+    I: Iterator<Item = (usize, &'a u8)>,
+{
     inner: &'a Command<'a>,
-    cursor: I
+    cursor: I,
 }
 
-impl<'a, I> Iterator for PropertyIterator<'a, I> where I: Iterator<Item = (usize, &'a u8)> {
+impl<'a, I> Iterator for PropertyIterator<'a, I>
+where
+    I: Iterator<Item = (usize, &'a u8)>,
+{
     type Item = (&'a str, &'a str);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -17,7 +23,10 @@ impl<'a, I> Iterator for PropertyIterator<'a, I> where I: Iterator<Item = (usize
 
         // Jump over the name chunk so that the field is next.
         for _ in 0..(*name_size) {
-            let _ = self.cursor.next().expect("Expected to jump over a name chunk byte...");
+            let _ = self
+                .cursor
+                .next()
+                .expect("Expected to jump over a name chunk byte...");
         }
 
         // Extract out the name str.
@@ -36,7 +45,8 @@ impl<'a, I> Iterator for PropertyIterator<'a, I> where I: Iterator<Item = (usize
             let mut field_idx = 0;
 
             for idx in 0..4 {
-                let (pos, byte) = self.cursor
+                let (pos, byte) = self
+                    .cursor
                     .next()
                     .map(|(idx, n)| (idx, *n))
                     .expect("Unexpected EOF");
@@ -92,7 +102,7 @@ impl<'a> Command<'a> {
     pub fn null_ready_properties(&self) -> Option<impl Iterator<Item = (&str, &str)>> {
         if self.name() != "READY" {
             return None;
-        } 
+        }
 
         let cursor = self
             .frame
@@ -103,7 +113,10 @@ impl<'a> Command<'a> {
             // which is calculated based of frame size.
             .skip(if self.frame.bytes[0] == 0x4 { 3 } else { 10 } + self.name().len());
 
-        let it = PropertyIterator { inner: self, cursor };
+        let it = PropertyIterator {
+            inner: self,
+            cursor,
+        };
 
         Some(it)
     }
@@ -114,7 +127,9 @@ impl<'a> fmt::Debug for Command<'a> {
         f.write_fmt(format_args!(
             "Command {{ name: {:#?}, properties: {:#?} }}",
             self.name(),
-            self.null_ready_properties().map(|it| it.collect::<Vec<_>>()).unwrap_or_default(),
+            self.null_ready_properties()
+                .map(|it| it.collect::<Vec<_>>())
+                .unwrap_or_default(),
         ))
     }
 }

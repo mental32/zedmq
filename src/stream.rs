@@ -4,7 +4,7 @@ use std::{
     net::TcpStream,
 };
 
-use crate::codec::{FrameBuf, ZMTP};
+use crate::codec::ZMTP;
 
 // -- Transport
 
@@ -51,9 +51,8 @@ impl Read for Transport {
 pub(crate) struct Stream {
     socket_type: &'static str,
     address: String,
-    pub(crate) transport: Option<Transport>,
+    transport: Option<Transport>,
 }
-
 
 impl Stream {
     /// Given an `address` produce a `Stream` that is connected even if connecting may block.
@@ -71,7 +70,11 @@ impl Stream {
 
     pub(super) fn connect(&self) -> io::Result<Transport> {
         let address = self.address.clone();
-        let produce = move || Ok(Transport::Tcp(Position::Connect(TcpStream::connect(address)?)));
+        let produce = move || {
+            Ok(Transport::Tcp(Position::Connect(TcpStream::connect(
+                address,
+            )?)))
+        };
 
         let transport = ZMTP::connect(produce)?
             .greet(crate::ZMQ_VERSION, false)?
@@ -107,5 +110,15 @@ impl Read for Stream {
         }
 
         Ok(n_bytes)
+    }
+}
+
+impl Write for Stream {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.ensure_connected().write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.ensure_connected().flush()
     }
 }

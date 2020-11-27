@@ -51,6 +51,7 @@
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
+#![allow(dead_code)]
 
 /// The currently supported ZMQ version.
 pub const ZMQ_VERSION: (u8, u8, u8) = (4, 3, 2);
@@ -63,5 +64,9 @@ pub(crate) mod stream;
 pub mod prelude {
     pub(crate) use super::*;
 
-    pub use socket_type::{pull_t::Pull, push_t::Push};
+    pub use socket_type::{
+        pull_t::Pull,
+        push_t::Push,
+        rep_t::{Rep, RepPending},
+    };
 }

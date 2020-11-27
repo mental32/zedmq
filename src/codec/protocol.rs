@@ -1,6 +1,6 @@
 use std::io::{self, Read, Write};
 
-use crate::stream::{Position, Transport};
+use crate::stream::Transport;
 
 use super::FrameBuf;
 
@@ -25,11 +25,7 @@ impl ZMTP {
     }
 
     /// Perform the greeting step of the ZMTP spec.
-    pub fn greet(
-        mut self,
-        (major, minor, _): (u8, u8, u8),
-        as_server: bool,
-    ) -> io::Result<Self> {
+    pub fn greet(mut self, (_major, _minor, _): (u8, u8, u8), as_server: bool) -> io::Result<Self> {
         let (partial, remaining) = {
             let mut greeting = crate::codec::Greeting::build();
             greeting.as_server(as_server);
@@ -77,7 +73,7 @@ impl ZMTP {
 
             // Inspect remote handshake.
             let mut buf = [0u8; 64];
-            let n = transport.read(&mut buf)?;
+            let _n = transport.read(&mut buf)?;
 
             // dbg!((super::Frame { bytes: &buf[..n] }.try_into_command()).unwrap());
 

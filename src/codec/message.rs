@@ -2,6 +2,7 @@ use super::Frame;
 
 // -- Message
 
+#[derive(Debug)]
 pub struct Message<'a> {
     pub(crate) frame: Frame<'a>,
     pub(crate) is_last: bool,

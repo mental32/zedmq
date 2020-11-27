@@ -1,4 +1,4 @@
-use std::io::{self, Read};
+use std::io::{self};
 
 use crate::stream::Stream;
 
@@ -33,7 +33,7 @@ impl Socket for Pull {
         })
     }
 
-    fn transport(&mut self) -> &mut crate::stream::Transport {
-        self.inner.transport.as_mut().unwrap()
+    fn stream(&mut self) -> &mut crate::stream::Stream {
+        &mut self.inner
     }
 }

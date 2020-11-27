@@ -10,3 +10,6 @@ readme = "README.md"
 categories = ["network-programming"]
 keywords = ["zmq", "protocol"]
 documentation = "https://docs.rs/zedmq"
+
+[dev-dependencies]
+zmq = "0.9.2"

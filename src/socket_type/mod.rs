@@ -1,9 +1,17 @@
-use std::{cmp::max, io::{self, Read, Write}};
+use std::{
+    cmp::max,
+    io::{self, Read, Write},
+};
 
-use crate::{stream::Transport, codec::{Frame, FrameBuf, FrameKind}};
+use crate::{
+    codec::{Frame, FrameBuf, FrameKind},
+    stream::Stream,
+};
 
 pub mod pull_t;
 pub mod push_t;
+pub mod rep_t;
+pub mod req_t;
 
 // -- trait Socket
 
@@ -22,23 +30,24 @@ where
     fn connect(address: &str) -> io::Result<Self>;
 
     /// Get a mutable reference to the current transport primitive.
-    fn transport(&mut self) -> &mut Transport;
+    fn stream(&mut self) -> &mut Stream;
 
     /// Read bytes into some buffer.
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.transport().read(buf)
+        self.stream().read(buf)
     }
 
     /// Read bytes into some buffer.
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.transport().write(buf)
+        self.stream().write(buf)
     }
 
     #[inline]
-    fn send<I, S>(&mut self, mut data: I) -> io::Result<()>
+    fn send<'a, I, S>(&mut self, mut data: I) -> io::Result<()>
     where
-        I: DoubleEndedIterator<Item = S>,
-        S: std::fmt::Debug + AsRef<[u8]>,
+        I: DoubleEndedIterator<Item = &'a S>,
+        S: AsRef<[u8]>,
+        S: 'a,
     {
         let tail = data.next_back().expect("Can not send empty frame.");
         let body: Vec<_> = data.collect();
@@ -84,26 +93,51 @@ where
     /// Read a frame and return a `FrameBuf` containing it.
     #[inline]
     fn recv_frame(&mut self) -> io::Result<FrameBuf> {
-        // FLAGS + (one or eight octets)
-        let mut head = [0; 9];
-
-        let head_n = self.read(&mut head)?;
-
-        let phantom_frame = Frame::new(&head as &[_]);
-        let size = phantom_frame.size().unwrap();
-
-        let frame_buf = if size > head.len() {
-            let mut tail = Vec::with_capacity(size - head.len());
-            let tail_n = self.read(tail.as_mut_slice())?;
-
-            let mut data = head[..head_n].to_vec();
-            data.extend_from_slice(&tail.as_slice()[..tail_n]);
-
-            FrameBuf::new(data)
-        } else {
-            FrameBuf::new(head[..head_n].to_vec())
+        let tag = {
+            let mut tag = [0xFFu8];
+            self.read(&mut tag)?;
+            tag[0]
         };
 
+        let (size, offset) = match tag {
+            0x0 | 0x1 | 0x4 => {
+                let mut tag = [0xFFu8];
+                self.read(&mut tag)?;
+                (tag[0] as usize, 2)
+            }
+
+            0x2 | 0x3 | 0x6 => {
+                let mut head = [0; 8];
+                self.read(&mut head)?;
+                (u64::from_be_bytes(head) as usize, 9)
+            }
+
+            _ => unreachable!(),
+        };
+
+        let mut raw_frame = Vec::with_capacity(size + 2);
+
+        raw_frame.push(tag);
+
+        match offset {
+            2 => raw_frame.push(size as u8),
+            9 => raw_frame.extend_from_slice(&u64::to_be_bytes(size as u64)),
+            _ => unreachable!(),
+        }
+
+        // dbg!((tag, size, &raw_frame, &raw_frame[offset..].len()));
+
+        if size > 0 {
+            let mut bytes = self.stream().bytes();
+
+            for _ in 0..size {
+                raw_frame.push(bytes.next().unwrap().unwrap())
+            }
+        }
+
+        // dbg!((tag, size, &raw_frame));
+
+        let frame_buf = FrameBuf::new(raw_frame);
         Ok(frame_buf)
     }
 

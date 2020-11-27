@@ -23,6 +23,14 @@
 //! new connections or performing reconnections on the users behalf
 //! consequently there is no shared state or synchronization being performed.
 //!
+//! #### Caveats
+//!
+//! Currently this library only supports connecting sockets
+//! over TCP, no binding behaviour is available.
+//!
+//! Also only a few socket types have been implemented: REQ, REP, PULL, PUSH,
+//! and SUB (PUB is being worked on).
+//!
 //! #### `Frame<'_>` and `FrameBuf`
 //!
 //! This library also exposes the underlying ZMQ concept of a frame.
@@ -44,7 +52,7 @@
 //!
 //! Same goes for the `Rep` socket except that `Rep` has `.recv` and
 //! `RepPending` has `.send`.
-//! 
+//!
 //! ### Examples
 //!
 //! ```rust,no_run
@@ -63,22 +71,24 @@
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
-#![allow(dead_code)]
 
 /// The currently supported ZMQ version.
-pub const ZMQ_VERSION: (u8, u8, u8) = (4, 3, 2);
+pub const ZMQ_VERSION: (u8, u8, u8) = (3, 1, 0);
 
 pub(crate) mod codec;
 pub(crate) mod socket_type;
 pub(crate) mod stream;
 
-/// The prelude.
-pub mod prelude {
-    pub(crate) use super::*;
+pub use socket_type::{
+    pub_t::Pub,
+    pull_t::Pull,
+    push_t::Push,
+    rep_t::{Rep, RepPending},
+    req_t::{Req, ReqPending},
+    sub_t::Sub,
+};
 
-    pub use socket_type::{
-        pull_t::Pull,
-        push_t::Push,
-        rep_t::{Rep, RepPending},
-    };
+/// The library prelude, containing all the stuff you probably want.
+pub mod prelude {
+    pub use super::*;
 }

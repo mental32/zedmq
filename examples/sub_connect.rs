@@ -1,4 +1,4 @@
-use std::{time::Duration, io, thread};
+use std::{io, thread, time::Duration};
 
 use zedmq::prelude::*;
 
@@ -12,19 +12,20 @@ fn main() -> io::Result<()> {
 
     eprintln!("Bound PUB socket on {:?}", address);
 
-    thread::spawn(move || loop {
-        pubs.send_multipart(vec![vec![0xFF]], 0x00).unwrap();
-        eprintln!("Tick.");
-        thread::sleep(Duration::from_secs(1));
-    });
-
-    let mut sub = Sub::connect(address.as_str()).unwrap();
+    let mut sub: Sub = zedmq::connect("tcp", address.as_str()).unwrap();
 
     eprintln!("Connected SUB socket to {:?}", address);
 
     sub.subscribe(&[]).unwrap();
 
     eprintln!("Subscribed with empty prefix");
+
+
+    thread::spawn(move || loop {
+        pubs.send_multipart(vec![vec![0xFF]], 0x00).unwrap();
+        eprintln!("Tick.");
+        thread::sleep(Duration::from_secs(1));
+    });
 
     let _ = dbg!(sub.recv()).unwrap();
 

@@ -1,7 +1,6 @@
-
-use std::{cell::Cell, collections::hash_map::DefaultHasher};
 use std::hash::Hasher;
 use std::io::{self, Write};
+use std::{cell::Cell, collections::hash_map::DefaultHasher};
 use std::{convert::TryInto, hash::Hash};
 
 use super::{LazyMessage, Socket};
@@ -26,6 +25,12 @@ enum SubscriptionTopic {
     Hashed { value: u64, length: u8 },
 }
 
+impl From<Stream> for Sub {
+    fn from(inner: Stream) -> Self {
+        Self { inner: Cell::new(inner), topics: vec![] }
+    }
+}
+
 /// A ZMQ SUB socket.
 pub struct Sub {
     inner: Cell<Stream>,
@@ -33,11 +38,6 @@ pub struct Sub {
 }
 
 impl Sub {
-    /// Block until a handshake has succeeded with `address`.
-    pub fn connect(address: &str) -> io::Result<Self> {
-        <Self as Socket>::connect(address)
-    }
-
     /// Subscribe to a topic.
     pub fn subscribe(&mut self, topic: &[u8]) -> io::Result<()> {
         // Note down the subscribing topic locally for prefix matching
@@ -85,7 +85,11 @@ impl Sub {
             subscribe
         };
 
-        self.inner.get_mut().ensure_connected().write(&subscribe).map(|_| ())
+        self.inner
+            .get_mut()
+            .ensure_connected()
+            .write(&subscribe)
+            .map(|_| ())
     }
 
     /// Recieve a message that matches a subscribed topic prefix.
@@ -107,11 +111,18 @@ impl Sub {
         let stream = self.inner.get_mut();
 
         loop {
-            let mut stream = LazyMessage { stream, witness: false }.fuse();
-            let first_frame = stream.next().expect("There should always be one frame in a message.").unwrap();
+            let mut stream = LazyMessage {
+                stream,
+                witness: false,
+            }
+            .fuse();
+            let first_frame = stream
+                .next()
+                .expect("There should always be one frame in a message.")
+                .unwrap();
             let frame = first_frame.as_frame().try_into_message().unwrap();
 
-            let prefix_match = |topic| { topic_prefix_match(topic, &frame.body()) };
+            let prefix_match = |topic| topic_prefix_match(topic, &frame.body());
 
             if self.topics.iter().any(prefix_match) {
                 let collected = if !frame.is_last() {
@@ -119,7 +130,7 @@ impl Sub {
                 } else {
                     vec![first_frame.into()]
                 };
- 
+
                 return Ok(collected);
             }
         }
@@ -133,18 +144,6 @@ impl Sub {
 }
 
 impl Socket for Sub {
-    fn bind(_: &str) -> io::Result<Self> {
-        unimplemented!()
-    }
-
-    fn connect(address: &str) -> io::Result<Self> {
-        let inner = Stream::connected("SUB", address);
-        Ok(Self {
-            inner: Cell::new(inner),
-            topics: vec![],
-        })
-    }
-
     fn stream(&mut self) -> &mut crate::stream::Stream {
         self.inner.get_mut()
     }

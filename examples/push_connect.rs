@@ -4,7 +4,7 @@ use zedmq::prelude::*;
 
 fn main() -> io::Result<()> {
     let address = std::env::var("ADDRESS").unwrap();
-    let mut socket = Push::connect(address.as_str()).unwrap();
+    let mut socket: Push = zedmq::connect("tcp", address.as_str()).unwrap();
 
     let msg = (b"oof" as &[u8]).to_vec();
 

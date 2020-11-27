@@ -10,7 +10,7 @@ fn main() -> io::Result<()> {
         socket
     };
 
-    let rep = Rep::connect(address.as_str()).unwrap();
+    let rep: Rep = zedmq::connect("tcp", address.as_str()).unwrap();
 
     req.send_multipart(vec![vec![0xFF]], 0x00).unwrap();
 

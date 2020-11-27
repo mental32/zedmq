@@ -1,8 +1,6 @@
-use std::{
-    io::{self, Read, Write},
-    net::TcpListener,
-    net::TcpStream,
-};
+use std::io::{self, Read, Write};
+use std::net::TcpListener;
+use std::net::TcpStream;
 
 use crate::codec::{FrameBuf, ZMTP};
 
@@ -48,7 +46,7 @@ impl Read for Transport {
 
 /// The stream struct represents the underlying connection primitive.
 #[derive(Debug, Default)]
-pub(crate) struct Stream {
+pub struct Stream {
     socket_type: &'static str,
     address: String,
     transport: Option<Transport>,

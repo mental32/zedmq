@@ -47,16 +47,10 @@ impl Iterator for LazyMessage<'_> {
 /// This trait doesn't care about the underlying socket type so
 /// acceptable behaviour is left up to the trait implementors like `Pull`
 ///
-pub(crate) trait Socket
+pub trait Socket
 where
     Self: Sized,
 {
-    /// Bind to some address.
-    fn bind(address: &str) -> io::Result<Self>;
-
-    /// Connect to some address.
-    fn connect(address: &str) -> io::Result<Self>;
-
     /// Get a mutable reference to the current transport primitive.
     fn stream(&mut self) -> &mut Stream;
 
@@ -114,7 +108,6 @@ where
         // SHORT SIZE
         frame.push(tail.as_ref().len() as u8);
         frame.extend_from_slice(&tail.as_ref());
-
 
         self.write(&frame)?;
 

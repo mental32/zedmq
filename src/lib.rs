@@ -53,13 +53,17 @@
 //! Same goes for the `Rep` socket except that `Rep` has `.recv` and
 //! `RepPending` has `.send`.
 //!
+//! This done on purpose, its value is that there are no accidental footguns
+//! involved with accidentially `.send`ing when you are only allowed to `.recv`
+//! or vice versa. Plus it removes the cost of runtime checking.
+//!
 //! ### Examples
 //!
 //! ```rust,no_run
 //! use zedmq::prelude::*;
 //!
 //! fn main() -> std::io::Result<()> {
-//!     let mut socket = Pull::connect("127.0.0.1:5678")?;
+//!     let mut socket: Pull = zedmq::connect("tcp", "127.0.0.1:5678")?;
 //!
 //!     while let Ok(message) = socket.recv() {
 //!         dbg!(message);
@@ -76,17 +80,63 @@
 pub const ZMQ_VERSION: (u8, u8, u8) = (3, 1, 0);
 
 pub(crate) mod codec;
-pub(crate) mod socket_type;
+mod socket_type;
 pub(crate) mod stream;
 
 pub use socket_type::{
-    pub_t::Pub,
     pull_t::Pull,
     push_t::Push,
     rep_t::{Rep, RepPending},
     req_t::{Req, ReqPending},
     sub_t::Sub,
 };
+
+mod sealed {
+    pub trait SocketType {
+        fn name() -> &'static str;
+    }
+
+    macro_rules! impl_socket_type {
+        [$( ($name:ident, $st:literal) ),+] => {
+            $(
+                impl SocketType for $crate::$name { fn name() -> &'static str { $st } }
+            )+
+        }
+    }
+
+    impl_socket_type![
+        (Pull, "PULL"),
+        (Push, "PUSH"),
+        (Sub, "SUB"),
+        (Req, "REQ"),
+        (Rep, "REP")
+    ];
+}
+
+use sealed::SocketType;
+use socket_type::Socket;
+use stream::Stream;
+
+/// Start a ZMQ socket with the specified `transport` to the specified `address`.
+pub fn connect<S>(transport: &str, address: &str) -> std::io::Result<S>
+where
+    S: SocketType + Socket + From<Stream>,
+{
+    assert_eq!(transport, "tcp", "Only TCP is supported.");
+
+    let name = <S as SocketType>::name();
+    let stream = Stream::connected(name, address);
+
+    Ok(stream.into())
+}
+
+/// Bind a ZMQ socket with the specified `transport` to the specified `address`.
+pub fn bind<S>(_transport: &str, _address: &str) -> std::io::Result<S>
+where
+    S: SocketType + Socket + From<Stream>,
+{
+    unimplemented!();
+}
 
 /// The library prelude, containing all the stuff you probably want.
 pub mod prelude {

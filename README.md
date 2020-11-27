@@ -23,6 +23,14 @@ This library is lazy and blocking, no work is done unless a call to a
 new connections or performing reconnections on the users behalf
 consequently there is no shared state or synchronization being performed.
 
+#### Caveats
+
+Currently this library only supports connecting sockets
+over TCP, no binding behaviour is available.
+
+Also only a few socket types have been implemented: REQ, REP, PULL, PUSH,
+and SUB (PUB is being worked on).
+
 #### `Frame<'_>` and `FrameBuf`
 
 This library also exposes the underlying ZMQ concept of a frame.
@@ -45,13 +53,17 @@ method which in turn returns a multipart message and `Req` socket tuple.
 Same goes for the `Rep` socket except that `Rep` has `.recv` and
 `RepPending` has `.send`.
 
+This done on purpose, its value is that there are no accidental footguns
+involved with accidentially `.send`ing when you are only allowed to `.recv`
+or vice versa. Plus it removes the cost of runtime checking.
+
 ### Examples
 
 ```rust
 use zedmq::prelude::*;
 
 fn main() -> std::io::Result<()> {
-    let mut socket = Pull::connect("127.0.0.1:5678")?;
+    let mut socket: Pull = zedmq::connect("tcp", "127.0.0.1:5678")?;
 
     while let Ok(message) = socket.recv() {
         dbg!(message);

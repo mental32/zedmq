@@ -4,7 +4,7 @@ use std::{
     net::TcpStream,
 };
 
-use crate::codec::ZMTP;
+use crate::codec::{FrameBuf, ZMTP};
 
 // -- Transport
 
@@ -83,7 +83,7 @@ impl Stream {
         Ok(transport)
     }
 
-    fn ensure_connected(&mut self) -> &mut Transport {
+    pub(crate) fn ensure_connected(&mut self) -> &mut Transport {
         while self.transport.is_none() {
             if let Ok(fresh) = self.connect() {
                 let _ = self.transport.replace(fresh);
@@ -94,6 +94,53 @@ impl Stream {
         }
 
         self.transport.as_mut().unwrap()
+    }
+
+    /// Read a frame and return a `FrameBuf` containing it.
+    #[inline]
+    pub(crate) fn recv_frame(&mut self) -> io::Result<FrameBuf> {
+        let tag = {
+            let mut tag = [0xFFu8];
+            self.read(&mut tag)?;
+            tag[0]
+        };
+
+        let (size, offset) = match tag {
+            0x0 | 0x1 | 0x4 => {
+                let mut tag = [0xFFu8];
+                self.read(&mut tag)?;
+                (tag[0] as usize, 2)
+            }
+
+            0x2 | 0x3 | 0x6 => {
+                let mut head = [0; 8];
+                self.read(&mut head)?;
+                (u64::from_be_bytes(head) as usize, 9)
+            }
+
+            _ => unreachable!(),
+        };
+
+        let mut raw_frame = Vec::with_capacity(size + 2);
+
+        raw_frame.push(tag);
+
+        match offset {
+            2 => raw_frame.push(size as u8),
+            9 => raw_frame.extend_from_slice(&u64::to_be_bytes(size as u64)),
+            _ => unreachable!(),
+        }
+
+        if size > 0 {
+            let mut bytes = self.bytes();
+
+            for _ in 0..size {
+                raw_frame.push(bytes.next().unwrap().unwrap())
+            }
+        }
+
+        let frame_buf = FrameBuf::new(raw_frame);
+        Ok(frame_buf)
     }
 }
 

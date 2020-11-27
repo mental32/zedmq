@@ -33,6 +33,18 @@
 //! the `FrameBuf` equivelent is `Vec<u8>` or `String`. This distinction is
 //! made in an attempt to make "zero copy" or "zero heap" practice easier.
 //!
+//! #### `REQ` and `REP`
+//!
+//! The design of `REQ` and `REP` sockets are symetrical and rendered safe
+//! through the use of the type system.
+//!
+//! A `Req` socket only has `.connect` and `.send` methods, `.send` of which
+//! consumes the socket and returns a `ReqPending` socket which only has a `.recv`
+//! method which in turn returns a multipart message and `Req` socket tuple.
+//!
+//! Same goes for the `Rep` socket except that `Rep` has `.recv` and
+//! `RepPending` has `.send`.
+//! 
 //! ### Examples
 //!
 //! ```rust,no_run

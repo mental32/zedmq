@@ -19,6 +19,7 @@ pub mod req_t;
 ///
 /// This trait doesn't care about the underlying socket type so
 /// acceptable behaviour is left up to the trait implementors like `Pull`
+///
 pub(crate) trait Socket
 where
     Self: Sized,

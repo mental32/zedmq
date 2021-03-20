@@ -131,13 +131,22 @@ impl Sub {
             let prefix_match = |topic| topic_prefix_match(topic, &frame.body());
 
             if self.topics.iter().any(prefix_match) {
-                let collected = if !frame.is_last() {
-                    stream.map(|frame| frame.unwrap().into()).collect()
-                } else {
-                    vec![first_frame.into()]
+                let f = |frame: FrameBuf| -> Vec<u8> {
+                    frame
+                        .as_frame()
+                        .try_into_message()
+                        .unwrap()
+                        .body()
+                        .to_owned()
                 };
 
-                return Ok(collected);
+                let message = if frame.is_last() {
+                    vec![f(first_frame)]
+                } else {
+                    stream.map(Result::unwrap).map(f).collect()
+                };
+
+                return Ok(message);
             }
         }
     }

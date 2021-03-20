@@ -16,18 +16,20 @@ fn main() -> io::Result<()> {
 
     eprintln!("Connected SUB socket to {:?}", address);
 
-    sub.subscribe(&[]).unwrap();
+    sub.subscribe(&[0xDE]).unwrap();
 
     eprintln!("Subscribed with empty prefix");
 
 
     thread::spawn(move || loop {
-        pubs.send_multipart(vec![vec![0xFF]], 0x00).unwrap();
+        pubs.send_multipart(vec![vec![0xDE, 0xAD, 0xBE, 0xEF]], 0x00).unwrap();
         eprintln!("Tick.");
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(Duration::from_millis(333));
     });
 
-    let _ = dbg!(sub.recv()).unwrap();
+    for _ in 0..3 {
+        let _ = dbg!(sub.recv()).unwrap();
+    }
 
     std::process::exit(0);
 }

@@ -71,13 +71,18 @@ where
         S: AsRef<[u8]>,
         S: 'a,
     {
-        let tail = data.next_back().expect("Can not send empty frame.");
+        let tail = data
+            .next_back()
+            .ok_or(io::Error::from(io::ErrorKind::InvalidInput))?;
+
         let body: Vec<_> = data.collect();
 
-        let mut frame = Vec::with_capacity(max(
+        let capacity = max(
             body.iter().map(|i| i.as_ref().len()).max().unwrap_or(0),
             tail.as_ref().len(),
-        ));
+        );
+
+        let mut frame = Vec::with_capacity(capacity);
 
         for part in body {
             let size = part.as_ref().len();

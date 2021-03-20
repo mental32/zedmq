@@ -13,6 +13,7 @@ pub struct ReqPending {
 }
 
 impl ReqPending {
+    /// recieve a message.
     pub fn recv(mut self) -> io::Result<(Vec<Vec<u8>>, Req)> {
         let data = <Self as Socket>::recv(&mut self)?;
         let Self { inner } = self;

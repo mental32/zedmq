@@ -125,8 +125,9 @@ impl<'a> Frame<'a> {
             0x0 | 0x1 | 0x4 => Some(*self.bytes.get(1)? as usize),
 
             0x2 | 0x3 | 0x6 => {
-                let size = u64::from_be_bytes(self.bytes.get(1..)?.try_into().unwrap()) as usize;
-                Some(size)
+                let slice = self.bytes.get(1..)?.try_into().ok()?;
+                let size = u64::from_be_bytes(slice);
+                Some(size as usize)
             }
 
             _ => None,

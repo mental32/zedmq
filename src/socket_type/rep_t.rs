@@ -28,16 +28,16 @@ impl Socket for RepPending {
 
 // -- Rep
 
+/// A zmq REP socket.
+#[derive(Debug)]
+pub struct Rep {
+    inner: Stream,
+}
 
 impl From<Stream> for Rep {
     fn from(inner: Stream) -> Self {
         Self { inner }
     }
-}
-/// A zmq REP socket.
-#[derive(Debug)]
-pub struct Rep {
-    inner: Stream,
 }
 
 impl Rep {

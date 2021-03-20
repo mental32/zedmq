@@ -6,7 +6,7 @@ use super::FrameBuf;
 
 /// A builder struct used to handle `greeting` and `handshake` steps.
 pub(crate) struct ZMTP {
-    security: Option<()>,
+    // security: Option<()>,
     transport: Transport,
 }
 
@@ -19,7 +19,7 @@ impl ZMTP {
         let transport = produce_transport()?;
 
         Ok(Self {
-            security: None,
+            // security: None,
             transport,
         })
     }

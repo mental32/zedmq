@@ -26,9 +26,9 @@ impl Greeting {
         self
     }
 
-    pub fn security(&mut self, _security: ()) -> &mut Self {
-        unimplemented!();
-    }
+    // pub fn security(&mut self, _security: ()) -> &mut Self {
+    //     unimplemented!();
+    // }
 
     pub fn into_parts(&self) -> ([u8; 12], [u8; 52]) {
         let raw = self.as_bytes();

@@ -27,7 +27,10 @@ enum SubscriptionTopic {
 
 impl From<Stream> for Sub {
     fn from(inner: Stream) -> Self {
-        Self { inner: Cell::new(inner), topics: vec![] }
+        Self {
+            inner: Cell::new(inner),
+            topics: vec![],
+        }
     }
 }
 
@@ -111,15 +114,18 @@ impl Sub {
         let stream = self.inner.get_mut();
 
         loop {
-            let mut stream = LazyMessage {
+            let message = LazyMessage {
                 stream,
                 witness: false,
-            }
-            .fuse();
+            };
+
+            let mut stream = message.fuse();
+
             let first_frame = stream
                 .next()
                 .expect("There should always be one frame in a message.")
                 .unwrap();
+
             let frame = first_frame.as_frame().try_into_message().unwrap();
 
             let prefix_match = |topic| topic_prefix_match(topic, &frame.body());

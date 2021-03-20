@@ -117,12 +117,31 @@ use sealed::SocketType;
 use socket_type::Socket;
 use stream::Stream;
 
+/// All the supported transports that are supported i.e. tcp, udp.
+#[derive(Debug, PartialEq)]
+#[allow(missing_docs)]
+pub enum TransportKind {
+    TCP,
+}
+
+impl From<&str> for TransportKind {
+    fn from(st: &str) -> Self {
+        match st {
+            "tcp" => Self::TCP,
+            _ => unimplemented!("{:?}", st),
+        }
+    }
+}
+
 /// Start a ZMQ socket with the specified `transport` to the specified `address`.
-pub fn connect<S>(transport: &str, address: &str) -> std::io::Result<S>
+pub fn connect<S, T>(transport: T, address: &str) -> std::io::Result<S>
 where
     S: SocketType + Socket + From<Stream>,
+    T: Into<TransportKind>,
 {
-    assert_eq!(transport, "tcp", "Only TCP is supported.");
+    let transport = transport.into();
+
+    assert_eq!(transport, TransportKind::TCP, "Only TCP is supported.");
 
     let name = <S as SocketType>::name();
     let stream = Stream::connected(name, address);

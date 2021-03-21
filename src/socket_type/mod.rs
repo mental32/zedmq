@@ -13,6 +13,7 @@ pub mod push_t;
 pub mod rep_t;
 pub mod req_t;
 pub mod sub_t;
+pub mod pub_t;
 
 // -- LazyMessage
 

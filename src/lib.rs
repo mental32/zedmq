@@ -89,6 +89,7 @@ pub use socket_type::{
     rep_t::{Rep, RepPending},
     req_t::{Req, ReqPending},
     sub_t::Sub,
+    pub_t::Pub,
 };
 
 mod sealed {
@@ -109,7 +110,8 @@ mod sealed {
         (Push, "PUSH"),
         (Sub, "SUB"),
         (Req, "REQ"),
-        (Rep, "REP")
+        (Rep, "REP"),
+        (Pub, "PUB")
     ];
 }
 

@@ -60,7 +60,11 @@ impl FrameBuf {
                 //  3) push the field length as u64 in network byte order
                 //  4) extend with the field bytes
                 for (st, field) in it.into_iter() {
-                    payload.push(st.len().try_into().unwrap());
+                    match st.len().try_into() {
+                        Ok(length) => payload.push(length),
+                        Err(_) => panic!("property names can not be longer than 255 bytes."),
+                    }
+
                     payload.extend_from_slice(st.as_bytes());
                     payload.extend_from_slice(&u32::to_be_bytes(field.len() as u32) as &[_]);
                     payload.extend_from_slice(field.as_bytes());

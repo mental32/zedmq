@@ -90,7 +90,7 @@ impl<'a> Command<'a> {
         let size = self.frame.bytes[idx];
         let start = idx + 1;
         let end = start + (size as usize);
-        let st = std::str::from_utf8(&self.frame.bytes[start..end]).unwrap();
+        let st = std::str::from_utf8(&self.frame.bytes[start..end]).unwrap_or("INVALID.UTF-8");
         st
     }
 

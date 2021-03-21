@@ -91,7 +91,10 @@ impl Stream {
             }
         }
 
-        self.transport.as_mut().unwrap()
+        match self.transport.as_mut() {
+            Some(inner) => inner,
+            None => unreachable!(),
+        }
     }
 
     /// Read a frame and return a `FrameBuf` containing it.
@@ -116,7 +119,7 @@ impl Stream {
                 (u64::from_be_bytes(head) as usize, 9)
             }
 
-            _ => unreachable!(),
+            _ => return Err(io::Error::from(io::ErrorKind::InvalidData)),
         };
 
         let mut raw_frame = Vec::with_capacity(size + 2);
@@ -133,7 +136,8 @@ impl Stream {
             let mut bytes = self.bytes();
 
             for _ in 0..size {
-                raw_frame.push(bytes.next().unwrap().unwrap())
+                let byte = bytes.next().ok_or(io::Error::from(io::ErrorKind::UnexpectedEof))??;
+                raw_frame.push(byte)
             }
         }
 

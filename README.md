@@ -9,6 +9,7 @@
 
 * [Brief](#brief)
 * [Examples](#examples)
+* [Comparison with other libraries](#comparison-with-other-libraries)
 
 ### Brief
 
@@ -28,8 +29,8 @@ consequently there is no shared state or synchronization being performed.
 Currently this library only supports connecting sockets
 over TCP, no binding behaviour is available.
 
-Also only a few socket types have been implemented: REQ, REP, PULL, PUSH,
-and SUB (PUB is being worked on).
+Also only a few socket types have been implemented: REQ, REP, PULL, PUSH, SUB,
+and PUB.
 
 #### `Frame<'_>` and `FrameBuf`
 
@@ -72,5 +73,40 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 ```
+
+### Comparison with other libraries
+
+| Library        | async?                    | ZMTP-type?        |
+|----------------|---------------------------|-------------------|
+| [zedmq](1)     | no  (blocking)            | native            |
+| [zmq.rs](2)    | yes (tokio,async-std)     | native            |
+| [rust-zmq](3)  | yes (nonblocking sockets) | no (wraps libzmq) |
+
+[rust-zmq](3) is a Rusty wrapper around libzmq which is written in C and
+performs its own threading and event management underneath, if you want to
+use libzmq from Rust consider this.
+
+[zmq.rs](2) is an effort by the ZeroMQ community to make a pure Rust ZMQ
+implementation, it is currently experimental and async only with support for
+both tokio and async-std runtimes.
+
+[zedmq](1), yours truly, is my attempt at a ZMQ library in pure Rust but I
+didn't just want to go and use the same "async" approach as [zmq.rs](2) because
+they already do it just fine. So instead I took inspiration from [ureq](4) and
+made a "simple" ZMQ library in Rust with an obvious, safe, and blocking API.
+
+zedmq compared to the other two libraries is the most lightweight (but note its
+currently the most underdeveloped.) it does not intend to compete with the other
+two libraries mentioned the same way ureq does not intend to compete with reqwest
+or hyper it is an alternative solution that wants to give Rust users a pleasant
+usage experience.
+
+It does not (unlike other pure implementions of ZMQ) blindly copy the libzmq API.
+Instead you get a Rust-y library that is cheap, safe, and (hopefully) fun to use.
+
+[1]: https://github.com/mental32/zedmq
+[2]: https://github.com/zeromq/zmq.rs
+[3]: https://github.com/erickt/rust-zmq
+[4]: https://github.com/algesten/ureq
 
 License: MIT

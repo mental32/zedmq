@@ -22,10 +22,23 @@ pub(crate) struct LazyMessage<'a> {
     witness: bool,
 }
 
+impl<'a> From<&'a mut Stream> for LazyMessage<'a> {
+    fn from(stream: &'a mut Stream) -> Self {
+        Self {
+            stream,
+            witness: false,
+        }
+    }
+}
+
 impl Iterator for LazyMessage<'_> {
     type Item = io::Result<FrameBuf>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.witness {
+            return None;
+        }
+
         let frame = self.stream.recv_frame();
 
         if let Ok(ref frame) = frame {

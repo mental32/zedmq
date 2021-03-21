@@ -121,29 +121,35 @@ impl Sub {
 
             let mut stream = message.fuse();
 
-            let first_frame = stream
+            let raw_frame = stream
                 .next()
-                .expect("There should always be one frame in a message.")
-                .unwrap();
+                .ok_or(io::Error::from(io::ErrorKind::UnexpectedEof))??;
 
-            let frame = first_frame.as_frame().try_into_message().unwrap();
+            let frame = match raw_frame.as_frame().try_into_message() {
+                Some(frame) => frame,
+                None => continue,
+            };
 
             let prefix_match = |topic| topic_prefix_match(topic, &frame.body());
 
             if self.topics.iter().any(prefix_match) {
-                let f = |frame: FrameBuf| -> Vec<u8> {
-                    frame
-                        .as_frame()
-                        .try_into_message()
-                        .unwrap()
-                        .body()
-                        .to_owned()
-                };
+                let mut message = vec![];
 
-                let message = if frame.is_last() {
-                    vec![f(first_frame)]
-                } else {
-                    stream.map(Result::unwrap).map(f).collect()
+                'inner: loop {
+                    let raw_frame = stream
+                        .next()
+                        .ok_or(io::Error::from(io::ErrorKind::UnexpectedEof))??;
+
+                    let part = match raw_frame.as_frame().try_into_message() {
+                        Some(frame) => frame,
+                        None => continue 'inner,  // ignore commands while constructing a multipart message.
+                    };
+
+                    message.push(part.body().to_owned());
+
+                    if part.is_last() {
+                        break;
+                    }
                 };
 
                 return Ok(message);
